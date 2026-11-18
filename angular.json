@@ -13,6 +13,7 @@
             "browser": "src/main.ts",
             "index": "src/index.html",
             "tsConfig": "tsconfig.app.json",
+            "assets": [{ "glob": "cypress-hub-logo.svg", "input": "src/assets", "output": "assets" }],
             "styles": ["src/styles.css"]
           },
           "configurations": {

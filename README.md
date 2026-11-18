@@ -18,7 +18,11 @@ npm.cmd ci
 npm.cmd start
 ```
 
-Inicie o projeto irmão `cypress-hub-backend` na porta 3000 e abra [Cypress Hub](http://localhost:4200). A aba **Visão geral** consulta saúde e quantidade de projetos. Em **Projetos**, cadastre um projeto e recarregue a página para conferir o registro.
+Inicie o projeto irmão `cypress-hub-backend` na porta 3000 e abra [Cypress Hub](http://localhost:4200). O **Dashboard** apresenta a saúde da API, os specs e as telas do projeto evologCypress.
+
+No menu lateral, use **Integrações** para importar a pasta local configurada no backend. **Casos de teste**, **Telas**, **Documentação** e **Agendamentos** trabalham sobre o catálogo do evologCypress. **Execuções** e **Relatórios** aguardam os resultados do worker Cypress.
+
+**Casos de teste** exige um módulo e uma tela para consultar os casos. Em **Telas**, filtre por módulo e alterne entre lista e grade. Em **Agendamentos**, escolha um módulo e selecione telas entre os menus do módulo para registrar um horário.
 
 ## Configuração e testes
 
@@ -38,4 +42,4 @@ npm.cmd run build
 npm.cmd test
 ```
 
-O build produz `dist/cypress-hub-frontend/browser`. Os testes Angular/Vitest com jsdom simulam respostas HTTP e verificam contagem, estados da lista, cadastro e retomada após erro. Para o teste com API e PostgreSQL reais, consulte `docs/LOCAL-SETUP-WINDOWS.md` no repositório do backend.
+O build produz `dist/cypress-hub-frontend/browser`. Os testes Angular/Vitest com jsdom simulam respostas HTTP e verificam os indicadores, o fluxo de sincronização e as sugestões de requisitos. Para o teste com API e PostgreSQL reais, consulte `docs/INTEGRACAO-EVOLOG.md` no repositório do backend.

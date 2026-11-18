@@ -1,0 +1,76 @@
+<section class="page-heading">
+  <div>
+    <h1>Casos de teste</h1>
+    <p>Consulte os casos associados às telas de cada módulo.</p>
+  </div>
+  @if (projectName()) { <span class="state-tag">{{ projectName() }}</span> }
+</section>
+
+@if (catalogLoading()) {
+  <p class="panel empty-state" role="status">Carregando módulos e telas…</p>
+} @else if (catalogError()) {
+  <section class="panel">
+    <p class="notice error-notice" role="alert">{{ catalogError() }}</p>
+    <button mat-stroked-button type="button" (click)="loadCatalog()">Tentar novamente</button>
+  </section>
+} @else {
+  <section class="panel" aria-label="Consulta de casos">
+    <h2>Consultar casos</h2>
+    @if (modules().length) {
+      <div class="form-grid filters">
+        <label class="field">
+          <span>Módulo <span class="required-mark" aria-hidden="true">*</span></span>
+          <select required [ngModel]="moduleId()" (ngModelChange)="selectModule($event)">
+            <option [ngValue]="null">Selecione o módulo</option>
+            @for (module of modules(); track module.id) {
+              <option [ngValue]="module.id">{{ module.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="field">
+          <span>Tela <span class="required-mark" aria-hidden="true">*</span></span>
+          <select required [disabled]="moduleId() === null" [ngModel]="screenId()" (ngModelChange)="selectScreen($event)">
+            <option value="">Selecione a tela</option>
+            @for (screen of moduleScreens(); track screen.id) {
+              <option [value]="screen.id">{{ screenLabel(screen) }}</option>
+            }
+          </select>
+        </label>
+      </div>
+
+      @if (!screenId()) {
+        <p class="inner-empty">Selecione o módulo e a tela para consultar os casos.</p>
+      } @else if (casesLoading()) {
+        <p class="inner-empty" role="status">Carregando casos da tela…</p>
+      } @else if (casesError()) {
+        <p class="notice error-notice case-error" role="alert">{{ casesError() }}</p>
+        <button mat-stroked-button type="button" (click)="selectScreen(screenId())">Tentar novamente</button>
+      } @else if (tests().length === 0) {
+        <p class="inner-empty" role="status">Esta tela ainda não tem casos cadastrados.</p>
+      } @else {
+        <label class="field filters">
+          <span>Buscar nesta tela</span>
+          <input type="search" [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Nome ou caminho do spec">
+        </label>
+        <ul class="record-list" aria-label="Casos da tela selecionada">
+          @for (test of visibleTests(); track test.id) {
+            <li class="record">
+              <div>
+                <h3>{{ test.name }}</h3>
+                @if (test.specPath) { <code class="source-path">{{ test.specPath }}</code> }
+              </div>
+              <span class="state-tag">{{ test.specAvailable ? 'Sem execução' : 'Spec ausente' }}</span>
+            </li>
+          } @empty {
+            <li class="inner-empty">Nenhum caso corresponde à busca.</li>
+          }
+        </ul>
+      }
+    } @else {
+      <div class="inner-empty">
+        <p>Nenhuma tela disponível para consulta.</p>
+        <a mat-stroked-button routerLink="/integracoes">Abrir Integrações</a>
+      </div>
+    }
+  </section>
+}

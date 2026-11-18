@@ -1,20 +1,13 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { environment } from '../environments/environment';
+import { CreateSchedule, Screen, TestCase, Workspace } from './workspace/workspace.models';
 
-export interface Project {
-  id: string;
-  name: string;
-  description: string | null;
-  repositoryUrl: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface CreateProject {
-  name: string;
-  description?: string;
-  repositoryUrl?: string;
+export interface CypressCatalog {
+  project: { id: string; name: string };
+  configured: boolean;
+  specs: number;
+  screens: number;
 }
 
 type ApiError = { messages?: string[] };
@@ -38,11 +31,44 @@ export class HubApi {
     return this.http.get<{ status: 'ok' }>(this.url + '/health', this.options);
   }
 
-  listProjects() {
-    return this.http.get<Project[]>(this.url + '/projects', this.options);
+  cypressCatalog() {
+    return this.http.get<CypressCatalog>(this.url + '/cypress', this.options);
   }
 
-  createProject(project: CreateProject) {
-    return this.http.post<Project>(this.url + '/projects', project, this.options);
+  syncCatalog() {
+    return this.http.post<CypressCatalog>(this.url + '/cypress/sync', {}, { timeout: 20000 });
+  }
+
+  workspace(projectId: string) {
+    return this.http.get<Workspace>(this.workspaceUrl(projectId), this.options);
+  }
+
+  workspaceScreens(projectId: string) {
+    return this.http.get<Screen[]>(this.workspaceUrl(projectId) + '/screens', this.options);
+  }
+
+  screenTests(projectId: string, screenId: string) {
+    const path = '/screens/' + encodeURIComponent(screenId) + '/tests';
+    return this.http.get<TestCase[]>(this.workspaceUrl(projectId) + path, this.options);
+  }
+
+  createScreen(projectId: string, screen: { name: string; route: string }) {
+    return this.http.post(this.workspaceUrl(projectId) + '/screens', screen, this.options);
+  }
+
+  createTest(projectId: string, test: { name: string; screenId?: string }) {
+    return this.http.post(this.workspaceUrl(projectId) + '/tests', test, this.options);
+  }
+
+  createSchedule(projectId: string, schedule: CreateSchedule) {
+    return this.http.post(this.workspaceUrl(projectId) + '/schedules', schedule, this.options);
+  }
+
+  removeSchedule(projectId: string, id: string) {
+    return this.http.delete<void>(this.workspaceUrl(projectId) + '/schedules/' + encodeURIComponent(id), this.options);
+  }
+
+  private workspaceUrl(projectId: string): string {
+    return this.url + '/projects/' + encodeURIComponent(projectId) + '/workspace';
   }
 }

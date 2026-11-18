@@ -1,0 +1,206 @@
+<section class="page-heading">
+  <div>
+    <h1>{{ title }}</h1>
+    <p>{{ description }}</p>
+  </div>
+  @if (projectName()) { <span class="state-tag">{{ projectName() }}</span> }
+</section>
+
+@if (projectLoading() || (loading() && !workspace())) {
+  <p class="panel empty-state" role="status">Carregando o catálogo do projeto…</p>
+} @else if (projectError() || loadError()) {
+  <section class="panel">
+    <p class="notice error-notice" role="alert">{{ projectError() || loadError() }}</p>
+    <button mat-stroked-button type="button" (click)="projectError() ? loadProject() : refresh()">Tentar novamente</button>
+  </section>
+} @else if (workspace(); as data) {
+  @if (actionError()) {
+    <p class="notice error-notice" role="alert">{{ actionError() }}</p>
+  }
+  @if (success()) {
+    <p class="notice success-notice" role="status">{{ success() }}</p>
+  }
+
+  @switch (section) {
+    @case ('agenda') {
+      <div class="info-strip">
+        <span class="state-tag">Planejamento</span>
+        <span>Os horários ficam registrados. O disparo automático aguarda um runner.</span>
+      </div>
+      <div class="workspace-columns">
+        <section class="panel workspace-panel">
+          <h2>Novo agendamento</h2>
+          <form class="stacked-form" #scheduleForm="ngForm" (ngSubmit)="scheduleForm.valid && createSchedule()">
+            <label class="field">
+              <span>Módulo <span class="required-mark" aria-hidden="true">*</span></span>
+              <select name="module" required [disabled]="saving()" [ngModel]="scheduleModuleId()"
+                (ngModelChange)="selectScheduleModule($event)">
+                <option [ngValue]="null">Selecione o módulo</option>
+                @for (module of screenModules(); track module.id) {
+                  <option [ngValue]="module.id">{{ module.name }}</option>
+                }
+              </select>
+            </label>
+            @if (scheduleModule(); as module) {
+              <label class="field">
+                <span>Menu</span>
+                <select name="menu" [disabled]="saving()" [ngModel]="scheduleMenu()" (ngModelChange)="scheduleMenu.set($event)">
+                  <option [ngValue]="null">Todos os menus de {{ module.name }}</option>
+                  @for (menu of scheduleMenus(); track menu.name) {
+                    <option [ngValue]="menu.name">{{ menu.name }}</option>
+                  }
+                </select>
+              </label>
+              <fieldset class="screen-choices">
+                <legend>Telas <span class="required-mark" aria-hidden="true">*</span></legend>
+                <p class="muted" aria-live="polite">{{ scheduleScreenIds().length }} selecionada(s) neste módulo</p>
+                <div class="screen-choice-list">
+                  @for (menu of visibleScheduleMenus(); track menu.name) {
+                    <section class="screen-choice-group" [attr.aria-label]="menu.name">
+                      <h3>{{ menu.name }}</h3>
+                      @for (screen of menu.screens; track screen.id) {
+                        <label class="screen-choice">
+                          <input #choice type="checkbox" [checked]="scheduleScreenIds().includes(screen.id)"
+                            [disabled]="saving()" (change)="toggleScheduleScreen(screen.id, choice.checked)">
+                          <span>{{ screen.name }}</span>
+                        </label>
+                      }
+                    </section>
+                  }
+                </div>
+              </fieldset>
+            }
+            <label class="field">
+              <span>Data e hora local</span>
+              <input name="date" type="datetime-local" [(ngModel)]="scheduleDate" required>
+            </label>
+            <label class="field">
+              <span>Frequência</span>
+              <select name="recurrence" [(ngModel)]="scheduleRecurrence">
+                <option value="ONCE">Uma vez</option>
+                <option value="DAILY">Diária</option>
+                <option value="WEEKLY">Semanal</option>
+              </select>
+            </label>
+            <button mat-flat-button type="submit" [disabled]="saving() || loading() || !scheduleDate || !scheduleScreenIds().length">{{ saving() ? 'Salvando…' : 'Registrar agendamento' }}</button>
+          </form>
+        </section>
+        <section class="panel workspace-panel">
+          <h2>Horários registrados <span class="record-count">{{ data.schedules.length }}</span></h2>
+          <ul class="record-list">
+            @for (schedule of data.schedules; track schedule.id) {
+              <li class="record">
+                <div>
+                  <h3>{{ scheduleLabel(schedule) }}</h3>
+                  @if (scheduleScreens(schedule); as screens) { <p>{{ screens }}</p> }
+                  <p><time [attr.datetime]="schedule.startAt">{{ schedule.startAt | date:'dd/MM/yyyy HH:mm' }}</time> · {{ recurrenceNames[schedule.recurrence] }}</p>
+                </div>
+                <button mat-button type="button" class="danger-action" [disabled]="saving() || loading()"
+                  (click)="removeSchedule(schedule.id)" [attr.aria-label]="'Remover agendamento de ' + scheduleLabel(schedule)">Remover</button>
+              </li>
+            } @empty {
+              <li class="inner-empty"><h3>Nenhum horário registrado</h3><p>Use o formulário para planejar uma execução.</p></li>
+            }
+          </ul>
+        </section>
+      </div>
+    }
+    @case ('documentacao') {
+      <section class="panel workspace-panel">
+        <h2>Requisitos do projeto</h2>
+        <form class="stacked-form" (ngSubmit)="analyze()">
+          <label class="field">
+            <span>Requisitos, um por linha</span>
+            <textarea name="document" [(ngModel)]="documentText" (ngModelChange)="analyzedText.set(null)"
+              maxlength="20000" rows="6" placeholder="Ex. O usuário deve conseguir entrar pela tela de Login."></textarea>
+          </label>
+          <button mat-flat-button type="submit" [disabled]="!documentText.trim() || saving() || loading()">Analisar documentação</button>
+        </form>
+      </section>
+      @if (analyzedText() !== null) {
+        <section class="panel workspace-panel document-results">
+          <h2>Correspondências no catálogo</h2>
+          <p class="muted">A análise compara termos dos requisitos com os nomes das telas e dos testes. Revise as sugestões.</p>
+          <ul class="record-list">
+            @for (requirement of requirements(); track $index) {
+              <li class="record">
+                <div>
+                  <h3>{{ requirement.text }}</h3>
+                  @if (requirement.candidate) { <p>Possível teste: {{ requirement.candidate.name }}</p> }
+                  @else if (requirement.screen) { <p>Tela sugerida: {{ requirement.screen.name }}</p> }
+                  @else { <p>Nenhuma tela correspondente.</p> }
+                </div>
+                @if (requirement.candidate) {
+                  <span class="state-tag">Revisar</span>
+                } @else {
+                  <button mat-stroked-button type="button" (click)="createTest(requirement)" [disabled]="saving() || loading()">Criar teste</button>
+                }
+              </li>
+            } @empty {
+              <li class="inner-empty">Informe pelo menos um requisito.</li>
+            }
+          </ul>
+        </section>
+      }
+    }
+    @case ('telas') {
+      <div class="section-toolbar">
+        <h2>Mapa de telas <span class="record-count">{{ visibleScreenCount() }}</span></h2>
+        <div class="screen-tools">
+          <div class="view-switch" role="group" aria-label="Visualização das telas">
+            <button type="button" aria-label="Ver em lista" title="Lista" [attr.aria-pressed]="screenView() === 'lista'"
+              (click)="screenView.set('lista')"><span class="list-view-icon" aria-hidden="true"></span></button>
+            <button type="button" aria-label="Ver em grade" title="Grade" [attr.aria-pressed]="screenView() === 'grade'"
+              (click)="screenView.set('grade')"><span class="grid-view-icon" aria-hidden="true"></span></button>
+          </div>
+          <button mat-flat-button type="button" (click)="openForm()" [disabled]="saving() || loading()">Nova tela</button>
+        </div>
+      </div>
+      @if (screenModules().length) {
+        <label class="field filters module-filter">
+          <span>Filtrar por módulo</span>
+          <select [ngModel]="screenModuleFilter()" (ngModelChange)="screenModuleFilter.set($event)">
+            <option [ngValue]="null">Todos os módulos</option>
+            @for (module of screenModules(); track module.id) {
+              <option [ngValue]="module.id">{{ module.name }}</option>
+            }
+          </select>
+        </label>
+      }
+      @if (formOpen) {
+        <form class="panel editor screen-editor" #screenForm="ngForm" (ngSubmit)="screenForm.valid && createScreen()">
+          <div class="form-grid">
+            <label class="field"><span>Nome da tela</span><input name="name" [(ngModel)]="name" maxlength="120" required></label>
+            <label class="field"><span>Rota</span><input name="route" [(ngModel)]="screenRoute" maxlength="300" placeholder="/login" required></label>
+          </div>
+          <div class="actions">
+            <button mat-flat-button type="submit" [disabled]="saving() || loading() || !name.trim() || !screenRoute.trim()">{{ saving() ? 'Salvando…' : 'Cadastrar tela' }}</button>
+            <button mat-button type="button" (click)="formOpen = false" [disabled]="saving()">Cancelar</button>
+          </div>
+        </form>
+      }
+      <div class="screen-groups">
+        @for (module of visibleScreenModules(); track module.id) {
+          <section class="screen-group">
+            <h3>{{ module.name }}</h3>
+            <div [class.screens-grid]="screenView() === 'grade'" [class.screens-list]="screenView() === 'lista'">
+              @for (screen of module.screens; track screen.id) {
+                <a class="screen-card" routerLink="/testes" [queryParams]="{ tela: screen.id }"
+                   [attr.aria-label]="'Consultar testes de ' + screen.name">
+                  <div class="screen-card-body">
+                    <h4>{{ screen.name }}</h4>
+                    <code>{{ screen.route || screen.sourceDirectory }}</code>
+                    <p>{{ testsPerScreen().get(screen.id) ?? 0 }} teste(s)</p>
+                  </div>
+                </a>
+              }
+            </div>
+          </section>
+        } @empty {
+          <div class="panel inner-empty screen-empty"><h3>Nenhuma tela cadastrada</h3><p>Registre uma rota para associar seus testes.</p></div>
+        }
+      </div>
+    }
+  }
+}
+

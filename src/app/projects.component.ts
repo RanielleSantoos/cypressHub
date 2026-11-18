@@ -1,153 +1,102 @@
-import { DatePipe } from '@angular/common';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { AbstractControl, FormBuilder, FormGroupDirective, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
-import { errorMessage, HubApi, Project } from './hub-api';
-
-function requiredName(control: AbstractControl<string>) {
-  return control.value.trim() ? null : { required: true };
-}
+import { CypressCatalog, errorMessage, HubApi } from './hub-api';
 
 @Component({
-  imports: [DatePipe, ReactiveFormsModule, MatButtonModule, MatFormFieldModule, MatInputModule],
+  imports: [MatButtonModule, RouterLink],
   template: `
     <section class="page-heading">
       <div>
-        <h1>Projetos</h1>
-        <p>Cadastre e consulte os projetos da sua equipe.</p>
+        <h1>{{ integrations ? 'Integrações' : 'Projeto' }}</h1>
+        <p>{{ integrations ? 'Sincronize os arquivos Cypress da pasta local.' : 'Consulte o catálogo e a configuração do evologCypress.' }}</p>
       </div>
     </section>
-    <div class="projects-grid">
-      <section class="panel project-form" aria-labelledby="create-title">
-        <h2 id="create-title">Novo projeto</h2>
-        <form [formGroup]="form" #projectForm="ngForm" (ngSubmit)="save(projectForm)">
-          <mat-form-field appearance="outline">
-            <mat-label>Nome</mat-label>
-            <input matInput formControlName="name" maxlength="120" required>
-            <mat-error>Informe um nome de até 120 caracteres.</mat-error>
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>Descrição</mat-label>
-            <textarea matInput formControlName="description" maxlength="1000" rows="3"></textarea>
-          </mat-form-field>
-          <mat-form-field appearance="outline">
-            <mat-label>URL do repositório</mat-label>
-            <input matInput type="url" formControlName="repositoryUrl" maxlength="2048" placeholder="https://">
-            <mat-error>Informe uma URL HTTP ou HTTPS.</mat-error>
-          </mat-form-field>
-          @if (saveError()) {
-            <p class="notice error-notice" role="alert">{{ saveError() }}</p>
-          }
-          <button mat-flat-button type="submit" [disabled]="saving() || loading()">
-            {{ saving() ? 'Cadastrando…' : 'Cadastrar projeto' }}
-          </button>
-          <div aria-live="polite">
-            @if (saved()) { <p class="notice success-notice">Projeto cadastrado.</p> }
-          </div>
-        </form>
-      </section>
-      <section class="panel project-list" aria-labelledby="list-title">
+
+    @if (loading()) {
+      <p class="panel empty-state" role="status">Carregando o projeto…</p>
+    }
+    @if (error()) {
+      <p class="notice error-notice" role="alert">{{ error() }}</p>
+      @if (!catalog()) { <button mat-stroked-button type="button" (click)="refresh()">Tentar novamente</button> }
+    }
+    @if (catalog(); as data) {
+      <section class="panel workspace-panel">
         <div class="panel-heading">
-          <h2 id="list-title">Projetos cadastrados</h2>
-          <button mat-stroked-button type="button" (click)="load()" [disabled]="loading() || saving()">Atualizar</button>
+          <h2>{{ data.project.name }}</h2>
+          <span class="state-tag">{{ data.configured ? 'Pasta local configurada' : 'Configuração pendente' }}</span>
         </div>
-        @if (loading()) {
-          <p class="empty-state" role="status">Carregando projetos…</p>
-        } @else if (listError()) {
-          <p class="notice error-notice" role="alert">{{ listError() }}</p>
-        } @else if (projects().length === 0) {
-          <div class="empty-state">
-            <span class="empty-icon folder-icon" aria-hidden="true"></span>
-            <h3>Nenhum projeto cadastrado</h3>
-            <p>Preencha o formulário para adicionar seu primeiro projeto.</p>
+        <dl class="project-summary">
+          <div><dt>Origem</dt><dd>Repositório Cypress local</dd></div>
+          <div><dt>Specs disponíveis</dt><dd>{{ data.specs }}</dd></div>
+          <div><dt>Telas catalogadas</dt><dd>{{ data.screens }}</dd></div>
+        </dl>
+        @if (integrations) {
+          @if (!data.configured) {
+            <p class="muted">Defina <code>CYPRESS_PROJECT_DIR</code> no ambiente do backend e reinicie a API.</p>
+          } @else {
+            <p class="muted">A sincronização importa os specs em <code>cypress/e2e</code> e agrupa as telas pelas pastas do repositório.</p>
+          }
+          <div class="actions">
+            <button mat-flat-button type="button" (click)="sync()" [disabled]="!data.configured || syncing()">
+              {{ syncing() ? 'Sincronizando…' : 'Sincronizar catálogo' }}
+            </button>
+            <a mat-stroked-button routerLink="/testes">Abrir casos de teste</a>
           </div>
+          @if (synced()) { <p class="notice success-notice sync-result" role="status">Catálogo atualizado com {{ data.specs }} specs disponíveis.</p> }
         } @else {
-          <ul class="project-items">
-            @for (project of projects(); track project.id) {
-              <li>
-                <div class="project-title">
-                  <h3>{{ project.name }}</h3>
-                  <time [attr.datetime]="project.createdAt">{{ project.createdAt | date:'dd/MM/yyyy' }}</time>
-                </div>
-                @if (project.description) { <p>{{ project.description }}</p> }
-                @if (project.repositoryUrl) {
-                  <a [href]="project.repositoryUrl" target="_blank" rel="noopener noreferrer">Abrir repositório</a>
-                }
-              </li>
-            }
-          </ul>
+          <div class="actions">
+            <a mat-flat-button routerLink="/testes">Abrir casos de teste</a>
+            <a mat-stroked-button routerLink="/telas">Ver telas</a>
+            <a mat-stroked-button routerLink="/integracoes">Configurar integração</a>
+          </div>
         }
       </section>
-    </div>
+    }
   `,
 })
 export class ProjectsComponent {
   private readonly api = inject(HubApi);
   private readonly destroyRef = inject(DestroyRef);
-  private readonly builder = inject(FormBuilder).nonNullable;
-
-  readonly form = this.builder.group({
-    name: ['', [requiredName, Validators.maxLength(120)]],
-    description: ['', Validators.maxLength(1000)],
-    repositoryUrl: ['', [Validators.pattern(/^\s*(?:https?:\/\/\S+)?\s*$/i), Validators.maxLength(2048)]],
-  });
-
-  readonly projects = signal<Project[]>([]);
-  readonly loading = signal(false);
-  readonly listError = signal('');
-  readonly saving = signal(false);
-  readonly saveError = signal('');
-  readonly saved = signal(false);
+  readonly integrations = inject(ActivatedRoute).snapshot.data['integrations'] === true;
+  readonly catalog = signal<CypressCatalog | null>(null);
+  readonly loading = signal(true);
+  readonly syncing = signal(false);
+  readonly synced = signal(false);
+  readonly error = signal('');
 
   constructor() {
-    this.load();
+    this.refresh();
   }
 
-  load(): void {
+  refresh(): void {
+    this.error.set('');
     this.loading.set(true);
-    this.listError.set('');
-    this.api.listProjects().pipe(
+    this.api.cypressCatalog().pipe(
       takeUntilDestroyed(this.destroyRef),
       finalize(() => this.loading.set(false)),
     ).subscribe({
-      next: (projects) => this.projects.set(projects),
-      error: (error: unknown) => this.listError.set(errorMessage(error, 'Falha ao carregar projetos.')),
+      next: (catalog) => this.catalog.set(catalog),
+      error: (error: unknown) => this.error.set(errorMessage(error, 'Falha ao consultar o projeto.')),
     });
   }
 
-  save(projectForm: FormGroupDirective): void {
-    if (this.saving() || this.loading()) return;
-    this.saved.set(false);
-    this.saveError.set('');
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-
-    const { name, description, repositoryUrl } = this.form.getRawValue();
-    this.saving.set(true);
-    this.form.disable();
-    this.api.createProject({
-      name: name.trim(),
-      description: description.trim() || undefined,
-      repositoryUrl: repositoryUrl.trim() || undefined,
-    }).pipe(
+  sync(): void {
+    if (this.syncing()) return;
+    this.error.set('');
+    this.synced.set(false);
+    this.syncing.set(true);
+    this.api.syncCatalog().pipe(
       takeUntilDestroyed(this.destroyRef),
-      finalize(() => {
-        this.saving.set(false);
-        this.form.enable();
-      }),
+      finalize(() => this.syncing.set(false)),
     ).subscribe({
-      next: () => {
-        projectForm.resetForm();
-        this.saved.set(true);
-        this.load();
+      next: (catalog) => {
+        this.catalog.set(catalog);
+        this.synced.set(true);
       },
-      error: (error: unknown) => this.saveError.set(errorMessage(error, 'Falha ao cadastrar o projeto.')),
+      error: (error: unknown) => this.error.set(errorMessage(error, 'Falha ao sincronizar o catálogo.')),
     });
   }
 }

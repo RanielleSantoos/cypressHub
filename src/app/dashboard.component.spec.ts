@@ -6,16 +6,21 @@ import { expect, it } from 'vitest';
 import { environment } from '../environments/environment';
 import { DashboardComponent } from './dashboard.component';
 
-it('mostra o status da API e diferencia a contagem zero de uma métrica indisponível', () => {
+it('mostra a saúde da API e os totais reais do evologCypress', () => {
   TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
   const fixture = TestBed.createComponent(DashboardComponent);
   const http = TestBed.inject(HttpTestingController);
   http.expectOne(environment.apiBaseUrl + '/health').flush({ status: 'ok' });
-  http.expectOne(environment.apiBaseUrl + '/projects').flush([]);
+  http.expectOne(environment.apiBaseUrl + '/cypress').flush({
+    project: { id: '9700ca86-ea96-4c20-95fb-9522a71f2665', name: 'evologCypress' },
+    configured: true,
+    specs: 126,
+    screens: 110,
+  });
   fixture.detectChanges();
   const view: HTMLElement = fixture.nativeElement;
   expect(view.querySelector('.status-ok')?.textContent).toContain('Operacional');
-  expect(view.querySelector('.metric-value')?.textContent?.trim()).toBe('0');
+  expect([...view.querySelectorAll('.metric-value')].map((value) => value.textContent?.trim())).toEqual(['126', '110']);
   expect(view.textContent).toContain('Aguardando integração com o Cypress.');
   http.verify();
 });
