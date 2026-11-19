@@ -54,6 +54,11 @@ body { margin: 0; min-width: 280px; }
   --mat-button-filled-container-color: var(--accent);
   --mat-button-filled-label-text-color: var(--accent-ink);
 }
+.report-dialog {
+  --mat-dialog-container-color: var(--surface);
+  --mat-dialog-subhead-color: var(--ink);
+  --mat-dialog-supporting-text-color: var(--ink);
+}
 a, button { -webkit-tap-highlight-color: transparent; }
 a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 2px solid var(--focus);

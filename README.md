@@ -20,7 +20,9 @@ npm.cmd start
 
 Inicie o projeto irmão `cypress-hub-backend` na porta 3000 e abra [Cypress Hub](http://localhost:4200). O **Dashboard** apresenta a saúde da API, os specs e as telas do projeto evologCypress.
 
-No menu lateral, use **Integrações** para importar a pasta local configurada no backend. **Casos de teste**, **Telas**, **Documentação** e **Agendamentos** trabalham sobre o catálogo do evologCypress. **Execuções** e **Relatórios** aguardam os resultados do worker Cypress.
+No menu lateral, use **Integrações** para importar a pasta local configurada no backend. **Casos de teste**, **Telas**, **Documentação** e **Agendamentos** trabalham sobre o catálogo do evologCypress. **Execuções** aguarda os resultados do worker Cypress.
+
+Em **Relatórios**, a grade mostra os PDFs de `cypress/relatorios`, incluindo os gerados em execuções manuais. Clique no cartão para visualizar o PDF ou use **Baixar PDF** no cartão ou na visualização.
 
 **Casos de teste** exige um módulo e uma tela para consultar os casos. Em **Telas**, filtre por módulo e alterne entre lista e grade. Em **Agendamentos**, escolha um módulo e selecione telas entre os menus do módulo para registrar um horário.
 

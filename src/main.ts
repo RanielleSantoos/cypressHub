@@ -4,6 +4,7 @@ import { provideRouter, Routes } from '@angular/router';
 import { AppComponent } from './app/app.component';
 
 const projectPage = () => import('./app/projects.component').then((module) => module.ProjectsComponent);
+const reportsPage = () => import('./app/reports.component').then((module) => module.ReportsComponent);
 const operationsPage = () => import('./app/operations.component').then((module) => module.OperationsComponent);
 
 const routes: Routes = [
@@ -23,8 +24,6 @@ const routes: Routes = [
     loadComponent: () => import('./app/workspace/workspace.component').then((module) => module.WorkspaceComponent),
   })),
   ...[
-    ['execucoes', 'Execuções'],
-    ['relatorios', 'Relatórios'],
     ['configuracoes', 'Configurações'],
   ].map(([path, title]) => ({
     path,
@@ -32,6 +31,8 @@ const routes: Routes = [
     data: { title },
     loadComponent: operationsPage,
   })),
+  { path: 'execucoes', title: 'Execuções | Cypress Hub', data: { title: 'Execuções' }, loadComponent: operationsPage },
+  { path: 'relatorios', title: 'Relatórios | Cypress Hub', loadComponent: reportsPage },
   { path: '**', redirectTo: '' },
 ];
 

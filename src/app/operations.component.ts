@@ -17,18 +17,8 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
           <h2>Histórico de execuções</h2>
           <div class="inner-empty">
             <h3>Worker Cypress pendente</h3>
-            <p>O histórico exibirá status, duração e evidências quando o worker começar a enviar resultados.</p>
-            <a mat-stroked-button routerLink="/agendamentos">Ver agendamentos</a>
-          </div>
-        </section>
-      }
-      @case ('relatorios') {
-        <section class="panel">
-          <h2>Indicadores de qualidade</h2>
-          <div class="inner-empty">
-            <h3>Aguardando resultados</h3>
-            <p>Taxa de sucesso e duração média são calculadas a partir de execuções concluídas.</p>
-            <a mat-stroked-button routerLink="/execucoes">Ver execuções</a>
+            <p>As execuções do worker serão exibidas aqui. Consulte os arquivos gerados pelo Cypress em Relatórios.</p>
+            <a mat-stroked-button routerLink="/relatorios">Ver Relatórios</a>
           </div>
         </section>
       }

@@ -13,7 +13,10 @@
             "browser": "src/main.ts",
             "index": "src/index.html",
             "tsConfig": "tsconfig.app.json",
-            "assets": [{ "glob": "cypress-hub-logo.svg", "input": "src/assets", "output": "assets" }],
+            "assets": [
+              { "glob": "cypress-hub-logo.svg", "input": "src/assets", "output": "assets" },
+              { "glob": "pdf.worker.min.mjs", "input": "node_modules/pdfjs-dist/build", "output": "assets/pdfjs" }
+            ],
             "styles": ["src/styles.css"]
           },
           "configurations": {

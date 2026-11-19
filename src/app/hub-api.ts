@@ -10,6 +10,12 @@ export interface CypressCatalog {
   screens: number;
 }
 
+export interface CypressReport {
+  id: string;
+  path: string;
+  updatedAt: string;
+}
+
 type ApiError = { messages?: string[] };
 
 export function errorMessage(error: unknown, fallback: string): string {
@@ -33,6 +39,18 @@ export class HubApi {
 
   cypressCatalog() {
     return this.http.get<CypressCatalog>(this.url + '/cypress', this.options);
+  }
+
+  cypressReports() {
+    return this.http.get<CypressReport[]>(this.url + '/cypress/reports', this.options);
+  }
+
+  reportUrl(id: string): string {
+    return this.url + '/cypress/reports/' + encodeURIComponent(id);
+  }
+
+  reportDownloadUrl(id: string): string {
+    return this.reportUrl(id) + '?download=true';
   }
 
   syncCatalog() {
